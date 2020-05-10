@@ -37,15 +37,15 @@ type RPCError struct {
 // Method Alias on func
 type Method func(params interface{}) (interface{}, *RPCError)
 
-// RpcMethod Interface for struct style method
-type RpcMethod interface {
+// RPCMethod Interface for struct style method
+type RPCMethod interface {
     Handler(params interface{}) (interface{}, *RPCError)
 }
 
 // ----------- STRUCT METHODS -----------
 
 // Register Add method based on struct style
-func Register(name string, handler RpcMethod) {
+func Register(name string, handler RPCMethod) {
     RegisterFunc(name, handler.Handler)
 }
 
@@ -58,7 +58,7 @@ func RegisterFunc(name string, method Method) {
 
 // --------------- PUBLIC ---------------
 
-// Handler Обработчик
+// Handler Main point function
 func Handler(w http.ResponseWriter, r *http.Request) {
     defer r.Body.Close()
     w.Header().Add("Content-Type", "application/json")
@@ -91,19 +91,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
     _, _ = fmt.Fprint(w, response)
 }
 
-// AuthError Ошибка авторизации
-func AuthError() (interface{}, *RPCError) {
-    return nil, &RPCError{
-        Code:    -10,
-        Message: "Запрос не авторизован",
-    }
-}
-
-// EmptyRequestError Неверные данные или пустой запрос
+// EmptyRequestError Wrong data or Empty request
+// Helper function for most cases
 func EmptyRequestError() (interface{}, *RPCError) {
     return nil, &RPCError{
         Code:    -20,
-        Message: "Запрос не содержит необходимых данных",
+        Message: "Wrong data or Empty request",
     }
 }
 
@@ -113,7 +106,7 @@ func processRequest(request utils.Object) string {
     req := RPCRequest{}
 
     decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-        Result:  req,
+        Result:  &req,
         TagName: "mstruct",
     })
 
