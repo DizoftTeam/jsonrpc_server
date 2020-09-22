@@ -63,7 +63,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	w.Header().Add("Content-Type", "application/json")
+
+	// TIP: CORS
 	w.Header().Add("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "*")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Add("Access-Control-Allow-Methods", "POST")
 
 	var request interface{}
 	var response interface{}
