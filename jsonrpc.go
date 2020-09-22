@@ -61,7 +61,9 @@ func RegisterFunc(name string, method Method) {
 // Handler Main point function
 func Handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
 	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	var request interface{}
 	var response interface{}
