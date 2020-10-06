@@ -17,8 +17,10 @@ const (
 	rpcVersion = "2.0" // Supported protocol version
 )
 
-// Array of methods
-var methods = map[string]Method{}
+var (
+	methods     = map[string]Method{} // Array of methods
+	httpRequest *http.Request         // Current request
+)
 
 // RPCRequest RPC struct
 type RPCRequest struct {
@@ -42,6 +44,11 @@ type RPCMethod interface {
 	Handler(params interface{}) (interface{}, *RPCError)
 }
 
+// Session contains request info
+type Session struct {
+	Request *http.Request // Current request
+}
+
 // ----------- STRUCT METHODS -----------
 
 // Register Add method based on struct style
@@ -54,6 +61,13 @@ func RegisterFunc(name string, method Method) {
 	methods[name] = method
 
 	log.Printf("Register method: %v\n", name)
+}
+
+// NewSession create new request session
+func NewSession() *Session {
+	return &Session{
+		Request: httpRequest,
+	}
 }
 
 // --------------- PUBLIC ---------------
@@ -69,6 +83,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Access-Control-Allow-Headers", "*")
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 	w.Header().Add("Access-Control-Allow-Methods", "POST")
+
+	httpRequest = r
 
 	var request interface{}
 	var response interface{}
@@ -95,6 +111,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, _ = fmt.Fprint(w, response)
+
+	httpRequest = nil
 }
 
 // EmptyRequestError Wrong data or Empty request
