@@ -1,6 +1,14 @@
 # Go JsonRpc Server
 
-Base implementation of JSONRpc in Go
+[![GitHub go.mod Go version of a Go module](https://img.shields.io/github/go-mod/go-version/DizoftTeam/jsonrpc_server.svg)](https://github.com/DizoftTeam/jsonrpc_server)
+[![GitHub tag](https://img.shields.io/github/tag/DizoftTeam/jsonrpc_server.svg)](https://GitHub.com/DizoftTeam/jsonrpc_server/tags/)
+
+[![GitHub stars](https://img.shields.io/github/stars/DizoftTeam/jsonrpc_server.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/DizoftTeam/jsonrpc_server/stargazers/)
+[![GitHub issues](https://img.shields.io/github/issues/DizoftTeam/jsonrpc_server.svg)](https://GitHub.com/DizoftTeam/jsonrpc_server/issues/)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-license.org/)
+[![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/blue?icon=github)](https://github.com/Naereen/badges/)
+
+Base implementation of JSONRpc v2.0 in Go
 
 ## How to get
 
@@ -25,12 +33,17 @@ import (
     "net/http"
 )
 
+// UserLogin controller for login method
 type UserLogin struct {}
 
+// Handler worker
 func (u UserLogin) Handler(params interface{}) (interface{}, *jsonrpc.RPCError) {
-    // Some logic here.
+    // Some logic/magic here.
     // It's like a controller
     
+    // To getting raw request you can run this
+    // session := jsonrpc.NewSession()
+
     // Success
     return "Login ok!", nil 
 
@@ -55,10 +68,10 @@ func main() {
 
     http.HandleFunc("/", jsonrpc.Handler)
 
-    fmt.Println()
+    log.Print("\nStarting server at :8089\n")
 
-    if err := http.ListenAndServe("8089", nil); err != nil {
-        log.Panic("Cant start server", err)
+    if err := http.ListenAndServe(":8089", nil); err != nil {
+      log.Panic("Cant start server", err)
     }
 }
 ```
