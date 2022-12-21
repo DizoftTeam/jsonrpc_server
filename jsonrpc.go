@@ -1,16 +1,16 @@
 package jsonrpc_server
 
 import (
-	"github.com/DizoftTeam/jsonrpc_server/utils"
-
-	"github.com/mitchellh/mapstructure"
-
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
+
+	"github.com/DizoftTeam/jsonrpc_server/utils"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -20,6 +20,8 @@ const (
 var (
 	methods     = map[string]Method{} // Array of methods
 	httpRequest *http.Request         // Current request
+
+	jlog = log.New(os.Stderr, "[JSONRpc]", log.LstdFlags)
 )
 
 // RPCRequest RPC struct
@@ -60,7 +62,7 @@ func Register(name string, handler RPCMethod) {
 func RegisterFunc(name string, method Method) {
 	methods[name] = method
 
-	log.Printf("Register method: %v\n", name)
+	jlog.Printf("Register method: %v\n", name)
 }
 
 // NewSession create new request session
@@ -72,8 +74,34 @@ func NewSession() *Session {
 
 // --------------- PUBLIC ---------------
 
-// Handler Main point function
-func Handler(w http.ResponseWriter, r *http.Request) {
+// CustomHandler used for custom incoming messages point (like WS)
+func CustomHandler(rawJsonData []byte) string {
+	var request interface{}
+	var response string
+
+	if err := json.Unmarshal(rawJsonData, &request); err != nil {
+		return `{"jsonrpc": "2.0", "error": {"code": -42700, "message": "Common Error"}}`
+	}
+
+	reqType := reflect.ValueOf(request).Kind()
+
+	if reqType == reflect.Slice {
+		var responses []string
+
+		for _, item := range request.([]interface{}) {
+			responses = append(responses, processRequest(item.(map[string]interface{})))
+		}
+
+		response = fmt.Sprintf("[%s]", strings.Join(responses, ","))
+	} else {
+		response = processRequest(request.(map[string]interface{}))
+	}
+
+	return response
+}
+
+// HttpHandler Main point function of http handler
+func HttpHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	w.Header().Add("Content-Type", "application/json")

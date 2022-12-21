@@ -10,6 +10,20 @@
 
 Base implementation of JSONRpc v2.0 in Go
 
+## Breaking changes of v2
+
+### HttpHandler
+
+Cause: add new handler
+
+> Old
+
+http.HandleFunc("/", jsonrpc.Handler)
+
+> New
+
+http.HandleFunc("/", jsonrpc.HttpHandler)
+
 ## How to get
 
 Use follow command
@@ -66,7 +80,7 @@ func registerMethods() {
 func main() {
     registerMethods()
 
-    http.HandleFunc("/", jsonrpc.Handler)
+    http.HandleFunc("/", jsonrpc.HttpHandler)
 
     log.Print("\nStarting server at :8089\n")
 
