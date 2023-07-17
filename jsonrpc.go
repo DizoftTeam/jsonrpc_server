@@ -15,6 +15,8 @@ import (
 
 const (
 	rpcVersion = "2.0" // Supported protocol version
+
+	notifyResponse = "JsonRpc_Notify_Response"
 )
 
 var (
@@ -26,10 +28,10 @@ var (
 
 // RPCRequest RPC struct
 type RPCRequest struct {
-	Version string      `mstruct:"jsonrpc"` // Protocol version
-	Method  string      `mstruct:"method"`  // Method name
-	Params  interface{} `mstruct:"params"`  // Method params
-	ID      int         `mstruct:"id"`      // Request id
+	Version string `mstruct:"jsonrpc"` // Protocol version
+	Method  string `mstruct:"method"`  // Method name
+	Params  any    `mstruct:"params"`  // Method params
+	ID      int    `mstruct:"id"`      // Request id
 }
 
 // RPCError Error struct
@@ -39,11 +41,11 @@ type RPCError struct {
 }
 
 // Method Alias on func
-type Method func(params interface{}) (interface{}, *RPCError)
+type Method func(params any) (any, *RPCError)
 
 // RPCMethod Interface for struct style method
 type RPCMethod interface {
-	Handler(params interface{}) (interface{}, *RPCError)
+	Handler(params any) (any, *RPCError)
 }
 
 // Session contains request info
@@ -76,7 +78,7 @@ func NewSession() *Session {
 
 // CustomHandler used for custom incoming messages point (like WS)
 func CustomHandler(rawJsonData []byte) string {
-	var request interface{}
+	var request any
 	var response string
 
 	if err := json.Unmarshal(rawJsonData, &request); err != nil {
@@ -88,13 +90,20 @@ func CustomHandler(rawJsonData []byte) string {
 	if reqType == reflect.Slice {
 		var responses []string
 
-		for _, item := range request.([]interface{}) {
-			responses = append(responses, processRequest(item.(map[string]interface{})))
+		for _, item := range request.([]any) {
+			responses = append(responses, processRequest(item.(map[string]any)))
 		}
 
-		response = fmt.Sprintf("[%s]", strings.Join(responses, ","))
+		var rr []string
+		for _, r := range responses {
+			if r != "" {
+				rr = append(rr, r)
+			}
+		}
+
+		response = fmt.Sprintf("[%s]", strings.Join(rr, ","))
 	} else {
-		response = processRequest(request.(map[string]interface{}))
+		response = processRequest(request.(map[string]any))
 	}
 
 	return response
@@ -114,8 +123,8 @@ func HttpHandler(w http.ResponseWriter, r *http.Request) {
 
 	httpRequest = r
 
-	var request interface{}
-	var response interface{}
+	var request any
+	var response any
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		_, _ = fmt.Fprintf(w, `{"jsonrpc": "2.0", "error": {"code": -42700, "message": "Common Error"}}`)
@@ -128,14 +137,25 @@ func HttpHandler(w http.ResponseWriter, r *http.Request) {
 	if reqType == reflect.Slice {
 		var responses []string
 
-		for _, item := range request.([]interface{}) {
-			responses = append(responses, processRequest(item.(map[string]interface{})))
+		for _, item := range request.([]any) {
+			pr := processRequest(item.(map[string]any))
+
+			if pr != notifyResponse {
+				responses = append(responses, pr)
+			}
+		}
+
+		var rr []string
+		for _, r := range responses {
+			if r != "" {
+				rr = append(rr, r)
+			}
 		}
 
 		// TODO: maybe it can make more beautiful
-		response = "[" + strings.Join(responses, ",") + "]"
+		response = "[" + strings.Join(rr, ",") + "]"
 	} else {
-		response = processRequest(request.(map[string]interface{}))
+		response = processRequest(request.(map[string]any))
 	}
 
 	_, _ = fmt.Fprint(w, response)
@@ -145,7 +165,7 @@ func HttpHandler(w http.ResponseWriter, r *http.Request) {
 
 // EmptyRequestError Wrong data or Empty request
 // Helper function for most cases
-func EmptyRequestError() (interface{}, *RPCError) {
+func EmptyRequestError() (any, *RPCError) {
 	return nil, &RPCError{
 		Code:    -20,
 		Message: "Wrong data or Empty request",
@@ -190,11 +210,11 @@ func processRequest(request utils.Object) string {
 		return performSuccess(req, result)
 	}
 
-	return ""
+	return notifyResponse
 }
 
 // performError Format success response
-func performSuccess(rpc RPCRequest, data interface{}) string {
+func performSuccess(rpc RPCRequest, data any) string {
 	return performResponse(rpc, "result", data)
 }
 
@@ -207,7 +227,7 @@ func performError(rpc RPCRequest, code int, message string) string {
 }
 
 // performResponse Create response
-func performResponse(rpc RPCRequest, key string, value interface{}) string {
+func performResponse(rpc RPCRequest, key string, value any) string {
 	_struct := utils.Object{
 		"jsonrpc": "2.0",
 		"id":      rpc.ID,
