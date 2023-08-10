@@ -91,12 +91,16 @@ func CustomHandler(rawJsonData []byte) string {
 		var responses []string
 
 		for _, item := range request.([]any) {
-			responses = append(responses, processRequest(item.(map[string]any)))
+			r := processRequest(item.(map[string]any))
+
+			if r != notifyResponse {
+				responses = append(responses, r)
+			}
 		}
 
 		var rr []string
 		for _, r := range responses {
-			if r != "" {
+			if r != "" && r != notifyResponse {
 				rr = append(rr, r)
 			}
 		}
@@ -104,6 +108,10 @@ func CustomHandler(rawJsonData []byte) string {
 		response = fmt.Sprintf("[%s]", strings.Join(rr, ","))
 	} else {
 		response = processRequest(request.(map[string]any))
+
+		if response == notifyResponse {
+			response = ""
+		}
 	}
 
 	return response
